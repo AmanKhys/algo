@@ -1,22 +1,52 @@
-// struct Node {
-//     value: i32,
-//     children: Vec<Node>,
-// }
-// impl Node {
-//     fn make_chidren(&mut self, num: i32) {
-//         for i in 1..num {
-//             self.children.push(Node {
-//                 value: i,
-//                 children: Vec::new(),
-//             });
-//         }
-//     }
-// }
+#[derive(Clone)]
 
-fn take_pie_values(len: u32) -> Vec<i32> {
+struct Node {
+    id: i32,
+    children: Vec<Node>,
+}
+impl Node {
+    fn add_child(&mut self, child: &Node) {
+        let c = child.clone();
+        self.children.push(c);
+    }
+    fn make_tree(&mut self, layer: i32) {
+        let mut current_layer_nodes: Vec<*mut Node> = vec![self];
+        let mut next_layer_nodes: Vec<*mut Node> = vec![];
+        let pi_values = take_pie_values(layer);
+        // using .len() to make the iterable a usize type
+        // instead of layer directly
+        for i in 0..pi_values.len() {
+            for &node in &current_layer_nodes {
+                for j in 1..=pi_values[i] {
+                    let mut child: Node = Node {
+                        id: j,
+                        children: vec![],
+                    };
+                    unsafe {
+                        (*node).add_child(&child);
+                    }
+                    next_layer_nodes.push(&mut child);
+                }
+            }
+            current_layer_nodes = next_layer_nodes.clone();
+            next_layer_nodes = vec![];
+        }
+    }
+}
+
+fn print_tree(root: Node) {
+    let mut queue = vec![root];
+    while !queue.is_empty() {
+        let node = queue.remove(0);
+        println!("Node ID: {}", node.id);
+        queue.extend(node.children);
+    }
+}
+
+fn take_pie_values(len: i32) -> Vec<i32> {
     let pi = std::f64::consts::PI;
     let mut nums: Vec<i32> = vec![];
-    let multiplier = i32::pow(10, len);
+    let multiplier = i32::pow(10, len as u32);
     let mut int_pi = (pi * multiplier as f64) as i32;
     println!("{}", int_pi);
     for _ in 0..len {
@@ -29,6 +59,10 @@ fn take_pie_values(len: u32) -> Vec<i32> {
 }
 
 fn main() {
-    let arr = take_pie_values(8);
-    println!("{:?}", arr);
+    let mut root = Node {
+        id: 32,
+        children: vec![],
+    };
+    root.make_tree(5);
+    print_tree(root);
 }
