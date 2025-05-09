@@ -1,4 +1,13 @@
-#[derive(Clone)]
+use bincode::{Decode, Encode, config};
+use std::fs;
+use std::io::ErrorKind;
+
+fn main() {
+    let tree = make_tree(4);
+    serialize_tree(tree);
+}
+
+#[derive(Clone, Encode, Decode)]
 struct Node {
     id: i32,
     children: Vec<Node>,
@@ -41,6 +50,36 @@ fn make_tree(layer: i32) -> Node {
     return root;
 }
 
+fn serialize_tree(root: Node) {
+    let config = config::standard();
+    match fs::create_dir("./bin/") {
+        Ok(_) => println!("Directory created."),
+        Err(ref e) if e.kind() == ErrorKind::AlreadyExists => {
+            println!("Directory already exists.");
+        }
+        Err(e) => eprintln!("Failed to create directory: {}", e),
+    }
+    let mut queue = vec![root];
+    // keep popping nodes one by one from the queue until there is none
+    while let Some(node) = queue.pop() {
+        // encode node
+        let encoded_node = match bincode::encode_to_vec(node.clone(), config) {
+            Ok(data) => data,
+            Err(e) => {
+                eprintln!("Encoding failed for node {}: {}", node.id, e);
+                continue;
+            }
+        };
+        // add it's children to the queue to be later encoded and written to files
+        queue.extend(node.children);
+        // write encoded_node to file
+        let path = format!("./bin/node_{}.bin", node.id);
+        match fs::write(&path, &encoded_node) {
+            Ok(()) => println!("written node {} to file {}", node.id, path),
+            Err(e) => eprintln!("error writing node {} to file {}: {}", node.id, path, e),
+        }
+    }
+}
 fn print_tree(root: Node) {
     let mut queue = vec![root];
     while let Some(node) = queue.pop() {
@@ -60,9 +99,4 @@ fn take_pie_values(len: i32) -> Vec<i32> {
     }
     nums.reverse();
     nums
-}
-
-fn main() {
-    let tree = make_tree(4);
-    print_tree(tree);
 }
