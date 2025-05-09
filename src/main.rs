@@ -5,12 +5,14 @@ use std::io::ErrorKind;
 fn main() {
     let tree = make_tree(4);
     serialize_tree(tree);
+    let root = deserialze_tree(1);
+    print_tree(root);
 }
 
 #[derive(Clone, Encode, Decode)]
 struct Node {
     id: i32,
-    childrenIDs: Vec<i32>,
+    children_ids: Vec<i32>,
     children: Vec<Node>,
 }
 
@@ -25,7 +27,7 @@ fn make_tree(layer: i32) -> Node {
     let mut id = 1;
     let mut root = Node {
         id,
-        childrenIDs: vec![],
+        children_ids: vec![],
         children: vec![],
     };
     id = id + 1;
@@ -38,11 +40,11 @@ fn make_tree(layer: i32) -> Node {
             for _ in 1..=pi_values[i] {
                 let child = Node {
                     id,
-                    childrenIDs: vec![],
+                    children_ids: vec![],
                     children: vec![],
                 };
                 unsafe {
-                    (*node_ptr).childrenIDs.push(child.id);
+                    (*node_ptr).children_ids.push(child.id);
                     let child_ptr = (*node_ptr).add_child(child);
                     next_layer_nodes.push(child_ptr);
                 }
@@ -83,6 +85,36 @@ fn serialize_tree(root: Node) {
             Err(e) => eprintln!("error writing node {} to file {}: {}", node.id, path, e),
         }
     }
+}
+
+fn deserialze_tree(id: i32) -> Node {
+    let path = format!("./bin/node_{}.bin", id);
+    let data: Vec<u8> = match fs::read(&path) {
+        Ok(data) => data,
+        Err(e) => {
+            eprintln!("error deserializing node data for path: {}: {}", path, e);
+            return Node {
+                id: -1,
+                children_ids: vec![],
+                children: vec![],
+            };
+        }
+    };
+
+    // let root_bin_file = bincode::decode_from_slice();
+    let config = bincode::config::standard();
+    let node: Node = match bincode::decode_from_slice(&data, config) {
+        Ok(node) => node.0,
+        Err(e) => {
+            eprintln!("error decoding from binary_object to node: {}", e);
+            return Node {
+                id: -1,
+                children_ids: vec![],
+                children: vec![],
+            };
+        }
+    };
+    return node;
 }
 fn print_tree(root: Node) {
     let mut queue = vec![root];
