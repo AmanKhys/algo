@@ -10,6 +10,7 @@ fn main() {
 #[derive(Clone, Encode, Decode)]
 struct Node {
     id: i32,
+    childrenIDs: Vec<i32>,
     children: Vec<Node>,
 }
 
@@ -24,6 +25,7 @@ fn make_tree(layer: i32) -> Node {
     let mut id = 1;
     let mut root = Node {
         id,
+        childrenIDs: vec![],
         children: vec![],
     };
     id = id + 1;
@@ -36,9 +38,11 @@ fn make_tree(layer: i32) -> Node {
             for _ in 1..=pi_values[i] {
                 let child = Node {
                     id,
+                    childrenIDs: vec![],
                     children: vec![],
                 };
                 unsafe {
+                    (*node_ptr).childrenIDs.push(child.id);
                     let child_ptr = (*node_ptr).add_child(child);
                     next_layer_nodes.push(child_ptr);
                 }
